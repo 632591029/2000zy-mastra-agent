@@ -1,20 +1,15 @@
 {
   "name": "2000zy-mastra-agent",
   "version": "1.0.0",
-  "description": "Weather agent powered by Mastra for Cloudflare Workers with GraphQL API",
+  "description": "Weather agent powered by Mastra for Cloudflare Workers",
   "main": "src/index.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "deploy:staging": "wrangler deploy --env staging",
     "build": "mastra build",
-    "start": "mastra start",
-    "cf:login": "wrangler auth login",
-    "cf:whoami": "wrangler auth whoami",
-    "cf:secret": "wrangler secret put OPENAI_API_KEY"
+    "dev": "mastra start",
+    "deploy": "npm run build && wrangler deploy --config .mastra/output/wrangler.json",
+    "deploy:dev": "wrangler dev --config .mastra/output/wrangler.json"
   },
-  "keywords": ["mastra", "ai", "weather", "cloudflare", "workers", "graphql"],
+  "keywords": ["mastra", "ai", "weather", "cloudflare", "workers"],
   "author": "",
   "license": "ISC",
   "type": "module",
@@ -24,16 +19,10 @@
   "dependencies": {
     "@ai-sdk/openai": "^1.3.24",
     "@mastra/core": "^0.13.2",
-    "@mastra/libsql": "^0.13.2",
-    "@mastra/loggers": "^0.10.6",
-    "@mastra/memory": "^0.12.2",
-    "@hono/graphql-server": "^0.5.1",
-    "graphql": "^16.8.1",
-    "hono": "^4.9.1",
+    "@mastra/deployer-cloudflare": "latest",
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20241127.0",
     "@types/node": "^24.2.1",
     "mastra": "^0.10.21",
     "typescript": "^5.9.2",
