@@ -1,7 +1,7 @@
 {
   "name": "2000zy-mastra-agent",
   "version": "1.0.0",
-  "description": "Weather agent powered by Mastra for Cloudflare Workers",
+  "description": "Weather agent powered by Mastra for Cloudflare Workers with GraphQL API",
   "main": "src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -13,7 +13,7 @@
     "cf:login": "wrangler auth login",
     "cf:whoami": "wrangler auth whoami"
   },
-  "keywords": ["mastra", "ai", "weather", "cloudflare", "workers"],
+  "keywords": ["mastra", "ai", "weather", "cloudflare", "workers", "graphql"],
   "author": "",
   "license": "ISC",
   "type": "module",
@@ -26,6 +26,8 @@
     "@mastra/libsql": "^0.13.2",
     "@mastra/loggers": "^0.10.6",
     "@mastra/memory": "^0.12.2",
+    "@hono/graphql-server": "^0.5.1",
+    "graphql": "^16.8.1",
     "hono": "^4.9.1",
     "zod": "^3.25.76"
   },
