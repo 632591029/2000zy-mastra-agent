@@ -2,8 +2,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { graphqlServer } from '@hono/graphql-server';
 import { buildSchema } from 'graphql';
-import { weatherAgent } from './mastra/agents/weather-agent';
-import { weatherWorkflow } from './mastra/workflows/weather-workflow';
+import { createMastraInstance } from './mastra';
 
 type Bindings = {
   OPENAI_API_KEY: string;
@@ -58,8 +57,17 @@ const resolvers = {
   
   weather: async ({ location }: { location: string }, context: any) => {
     try {
-      // Set OpenAI API key from environment
-      process.env.OPENAI_API_KEY = context.env.OPENAI_API_KEY;
+      if (!context.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API key not configured');
+      }
+
+      // Initialize Mastra with the API key
+      const mastra = createMastraInstance(context.env.OPENAI_API_KEY);
+      const weatherAgent = mastra.getAgent('Weather Agent');
+
+      if (!weatherAgent) {
+        throw new Error('Weather agent not found');
+      }
 
       const response = await weatherAgent.stream([
         {
@@ -94,8 +102,17 @@ const resolvers = {
         throw new Error('Message is required');
       }
 
-      // Set OpenAI API key from environment
-      process.env.OPENAI_API_KEY = context.env.OPENAI_API_KEY;
+      if (!context.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API key not configured');
+      }
+
+      // Initialize Mastra with the API key
+      const mastra = createMastraInstance(context.env.OPENAI_API_KEY);
+      const weatherAgent = mastra.getAgent('Weather Agent');
+
+      if (!weatherAgent) {
+        throw new Error('Weather agent not found');
+      }
 
       const response = await weatherAgent.stream([
         {
@@ -130,10 +147,19 @@ const resolvers = {
         throw new Error('City is required');
       }
 
-      // Set OpenAI API key from environment
-      process.env.OPENAI_API_KEY = context.env.OPENAI_API_KEY;
+      if (!context.env.OPENAI_API_KEY) {
+        throw new Error('OpenAI API key not configured');
+      }
 
-      const result = await weatherWorkflow.execute({
+      // Initialize Mastra with the API key
+      const mastra = createMastraInstance(context.env.OPENAI_API_KEY);
+      const workflow = mastra.getWorkflow('weather-workflow');
+
+      if (!workflow) {
+        throw new Error('Weather workflow not found');
+      }
+
+      const result = await workflow.execute({
         input: { city },
       });
 
@@ -188,8 +214,17 @@ app.post('/chat', async (c) => {
       return c.json({ error: 'Message is required' }, 400);
     }
 
-    // Set OpenAI API key from environment
-    process.env.OPENAI_API_KEY = c.env.OPENAI_API_KEY;
+    if (!c.env.OPENAI_API_KEY) {
+      return c.json({ error: 'OpenAI API key not configured' }, 500);
+    }
+
+    // Initialize Mastra with the API key
+    const mastra = createMastraInstance(c.env.OPENAI_API_KEY);
+    const weatherAgent = mastra.getAgent('Weather Agent');
+
+    if (!weatherAgent) {
+      return c.json({ error: 'Weather agent not found' }, 500);
+    }
 
     const response = await weatherAgent.stream([
       {
@@ -224,8 +259,17 @@ app.post('/weather', async (c) => {
       return c.json({ error: 'Location is required' }, 400);
     }
 
-    // Set OpenAI API key from environment
-    process.env.OPENAI_API_KEY = c.env.OPENAI_API_KEY;
+    if (!c.env.OPENAI_API_KEY) {
+      return c.json({ error: 'OpenAI API key not configured' }, 500);
+    }
+
+    // Initialize Mastra with the API key
+    const mastra = createMastraInstance(c.env.OPENAI_API_KEY);
+    const weatherAgent = mastra.getAgent('Weather Agent');
+
+    if (!weatherAgent) {
+      return c.json({ error: 'Weather agent not found' }, 500);
+    }
 
     const response = await weatherAgent.stream([
       {
@@ -260,10 +304,19 @@ app.post('/workflow', async (c) => {
       return c.json({ error: 'City is required' }, 400);
     }
 
-    // Set OpenAI API key from environment
-    process.env.OPENAI_API_KEY = c.env.OPENAI_API_KEY;
+    if (!c.env.OPENAI_API_KEY) {
+      return c.json({ error: 'OpenAI API key not configured' }, 500);
+    }
 
-    const result = await weatherWorkflow.execute({
+    // Initialize Mastra with the API key
+    const mastra = createMastraInstance(c.env.OPENAI_API_KEY);
+    const workflow = mastra.getWorkflow('weather-workflow');
+
+    if (!workflow) {
+      return c.json({ error: 'Weather workflow not found' }, 500);
+    }
+
+    const result = await workflow.execute({
       input: { city },
     });
 
