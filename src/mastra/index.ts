@@ -1,28 +1,17 @@
 import { Mastra } from '@mastra/core';
-import { openai } from '@ai-sdk/openai';
+import { CloudflareDeployer } from '@mastra/deployer-cloudflare';
 import { weatherAgent } from './agents/weather-agent';
 import { weatherWorkflow } from './workflows/weather-workflow';
 
-let mastraInstance: Mastra | null = null;
-
-export function createMastraInstance(openaiApiKey: string): Mastra {
-  if (!mastraInstance) {
-    // Set the OpenAI API key globally for the AI SDK
-    process.env.OPENAI_API_KEY = openaiApiKey;
-    
-    mastraInstance = new Mastra({
-      agents: [weatherAgent],
-      workflows: [weatherWorkflow],
-      // For Cloudflare Workers, we'll use a simplified setup
-      // without persistent memory for now
-    });
-  }
-  
-  return mastraInstance;
-}
-
-export function getMastraInstance(): Mastra | null {
-  return mastraInstance;
-}
-
-export { weatherAgent, weatherWorkflow };
+export const mastra = new Mastra({
+  agents: [weatherAgent],
+  workflows: [weatherWorkflow],
+  deployer: new CloudflareDeployer({
+    projectName: "weather-agent-worker",
+    scope: process.env.CLOUDFLARE_ACCOUNT_ID || "",
+    auth: {
+      apiToken: process.env.CLOUDFLARE_API_TOKEN || "",
+      apiEmail: process.env.CLOUDFLARE_EMAIL || ""
+    }
+  })
+});
