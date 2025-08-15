@@ -1,0 +1,27 @@
+name = "weather-agent-worker"
+main = "src/index.ts"
+compatibility_date = "2024-08-15"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+name = "weather-agent-worker"
+
+[env.staging]
+name = "weather-agent-worker-staging"
+
+# Environment variables
+[vars]
+# Add your OpenAI API key here or use wrangler secret
+# OPENAI_API_KEY = "your-key-here"
+
+# KV namespace for storing agent memory/state
+# [[kv_namespaces]]
+# binding = "AGENT_STORAGE"
+# id = "your-kv-namespace-id"
+# preview_id = "your-preview-kv-namespace-id"
+
+# D1 database for more complex storage
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "weather-agent-db"
+# database_id = "your-database-id"
