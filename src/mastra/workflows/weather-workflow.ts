@@ -1,4 +1,7 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
+import { openai } from '@ai-sdk/openai';
+import { Agent } from '@mastra/core/agent';
+import { weatherTool } from '../tools/weather-tool';
 import { z } from 'zod';
 
 const forecastSchema = z.object({
@@ -56,7 +59,7 @@ const fetchWeather = createStep({
 
     const { latitude, longitude, name } = geocodingData.results[0];
 
-    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=precipitation,weathercode&timezone=auto,&hourly=precipitation_probability,temperature_2m`;
+    const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=precipitation,weathercode&timezone=auto&hourly=precipitation_probability,temperature_2m`;
     const response = await fetch(weatherUrl);
     const data = (await response.json()) as {
       current: {
@@ -93,61 +96,66 @@ const planActivities = createStep({
   outputSchema: z.object({
     activities: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData }) => {
     const forecast = inputData;
 
     if (!forecast) {
       throw new Error('Forecast data not found');
     }
 
-    const agent = mastra?.getAgent('weatherAgent');
-    if (!agent) {
-      throw new Error('Weather agent not found');
-    }
+    // Create a temporary agent for activity planning since we can't rely on mastra context
+    const activityAgent = new Agent({
+      name: 'Activity Planning Agent',
+      instructions: `
+        You are an expert activity planner who suggests appropriate activities based on weather conditions.
+        Always format your response exactly as follows:
+
+        📅 [Day, Month Date, Year]
+        ═══════════════════════════
+
+        🌡️ WEATHER SUMMARY
+        • Conditions: [brief description]
+        • Temperature: [X°C to Y°C]
+        • Precipitation: [X% chance]
+
+        🌅 MORNING ACTIVITIES
+        Outdoor:
+        • [Activity Name] - [Brief description including specific location/route]
+          Best timing: [specific time range]
+          Note: [relevant weather consideration]
+
+        🌞 AFTERNOON ACTIVITIES
+        Outdoor:
+        • [Activity Name] - [Brief description including specific location/route]
+          Best timing: [specific time range]
+          Note: [relevant weather consideration]
+
+        🏠 INDOOR ALTERNATIVES
+        • [Activity Name] - [Brief description including specific venue]
+          Ideal for: [weather condition that would trigger this alternative]
+
+        ⚠️ SPECIAL CONSIDERATIONS
+        • [Any relevant weather warnings, UV index, wind conditions, etc.]
+
+        Guidelines:
+        - Suggest 2-3 time-specific outdoor activities per day
+        - Include 1-2 indoor backup options
+        - For precipitation >50%, lead with indoor activities
+        - All activities must be specific to the location
+        - Include specific venues, trails, or locations
+        - Consider activity intensity based on temperature
+        - Keep descriptions concise but informative
+      `,
+      model: openai('gpt-4o-mini'),
+      tools: { weatherTool },
+    });
 
     const prompt = `Based on the following weather forecast for ${forecast.location}, suggest appropriate activities:
       ${JSON.stringify(forecast, null, 2)}
-      For each day in the forecast, structure your response exactly as follows:
+      
+      Please follow the exact formatting guidelines provided in your instructions.`;
 
-      📅 [Day, Month Date, Year]
-      ═══════════════════════════
-
-      🌡️ WEATHER SUMMARY
-      • Conditions: [brief description]
-      • Temperature: [X°C/Y°F to A°C/B°F]
-      • Precipitation: [X% chance]
-
-      🌅 MORNING ACTIVITIES
-      Outdoor:
-      • [Activity Name] - [Brief description including specific location/route]
-        Best timing: [specific time range]
-        Note: [relevant weather consideration]
-
-      🌞 AFTERNOON ACTIVITIES
-      Outdoor:
-      • [Activity Name] - [Brief description including specific location/route]
-        Best timing: [specific time range]
-        Note: [relevant weather consideration]
-
-      🏠 INDOOR ALTERNATIVES
-      • [Activity Name] - [Brief description including specific venue]
-        Ideal for: [weather condition that would trigger this alternative]
-
-      ⚠️ SPECIAL CONSIDERATIONS
-      • [Any relevant weather warnings, UV index, wind conditions, etc.]
-
-      Guidelines:
-      - Suggest 2-3 time-specific outdoor activities per day
-      - Include 1-2 indoor backup options
-      - For precipitation >50%, lead with indoor activities
-      - All activities must be specific to the location
-      - Include specific venues, trails, or locations
-      - Consider activity intensity based on temperature
-      - Keep descriptions concise but informative
-
-      Maintain this exact formatting for consistency, using the emoji and section headers as shown.`;
-
-    const response = await agent.stream([
+    const response = await activityAgent.stream([
       {
         role: 'user',
         content: prompt,
@@ -157,7 +165,6 @@ const planActivities = createStep({
     let activitiesText = '';
 
     for await (const chunk of response.textStream) {
-      process.stdout.write(chunk);
       activitiesText += chunk;
     }
 
